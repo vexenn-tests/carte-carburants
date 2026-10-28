@@ -91,9 +91,14 @@
   @media (max-width: 640px) { .best { grid-template-columns: repeat(2, minmax(0, 1fr)); } .best.one { grid-template-columns: minmax(0, 1fr); } .map-box { height: 440px; } }
   .card { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; background: #fff; border: 1px solid var(--border);
     border-radius: 12px; padding: 10px 14px; text-align: left; font: inherit; color: inherit; }
-  button.card { cursor: pointer; transition: border-color .15s; }
-  button.card:hover { border-color: var(--brand); }
-  button.card:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  .card[data-k] { cursor: pointer; transition: border-color .15s; }
+  .card[data-k]:hover { border-color: var(--brand); }
+  .card[data-k]:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  .nav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; }
+  .nav span { color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; font-size: 11px; margin-right: 2px; }
+  .nav a { padding: 5px 11px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; text-decoration: none; }
+  .nav a:hover { background: var(--brand); color: #fff; }
+  .pop-nav { padding: 2px 14px 12px; border-top: 1px solid var(--line); }
   .card .k { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
   .card .v { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
   .best.one .card .v { font-size: 30px; }
@@ -140,7 +145,11 @@
   .cheap-title { margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
   .cheap-list { list-style: none; margin: 0; padding: 0; }
   .cheap-list li + li { border-top: 1px solid var(--line); }
-  .cheap-row { width: 100%; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 6px;
+  .cheap-item { display: flex; align-items: center; gap: 6px; }
+  .cheap-go { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent-ink); }
+  .cheap-go:hover { background: var(--brand); color: #fff; }
+  .cheap-row { flex: 1; min-width: 0; width: 100%; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 6px;
     font: inherit; color: inherit; text-align: left; background: none; border: 0; border-radius: 8px; cursor: pointer; }
   .cheap-row:hover { background: var(--accent-soft); }
   .cheap-row:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
@@ -208,7 +217,7 @@ const STALE_DAYS = 7;
 const PRICE_BINS = [
   { max: -1, color: '#1c5cab' },
   { max: -1 / 3, color: '#86b6ef' },
-  { max: 1 / 3, color: '#b8b6ad' },
+  { max: 1 / 3, color: '#f5c518' },
   { max: 1, color: '#f09a99' },
   { max: Infinity, color: '#c23030' },
 ];
@@ -287,7 +296,7 @@ function computeFuelStats() {
   fuelStats = { mean, sd };
 }
 const colorFor = p => PRICE_BINS.find(b => (fuelStats.sd ? (p - fuelStats.mean) / fuelStats.sd : 0) < b.max).color;
-const LIGHT_BINS = new Set(['#86b6ef', '#b8b6ad', '#f09a99']);
+const LIGHT_BINS = new Set(['#86b6ef', '#f5c518', '#f09a99']);
 
 const iconCache = new Map();
 function iconFor(s) {
@@ -342,33 +351,60 @@ function renderBest(inZone) {
     bestItems[k] = s;
     const save = avg - s.prix[fi];
     const dot = ALL() ? 'var(--brand)' : colorFor(s.prix[fi]);
-    return `<button class="card" data-k="${k}">
+    return `<div class="card" data-k="${k}" role="button" tabindex="0" aria-label="Voir ${esc(s.ville || 'la station')} sur la carte">
       <div class="k">${title}</div>
       <div class="v"><span class="sw" style="background:${dot}"></span>${euro(s.prix[fi]).replace(' €', '')} <small>€/L</small></div>
       <div class="who"><b>${esc(s.ville || 'Commune inconnue')} (${esc(s.cp)})</b><small>${esc(s.adresse)}</small></div>
       <div class="avg">Moyenne dans la zone : <b>${euro(avg)}</b>${save >= 0.0005 ? ` · <span class="save">${(save * 100).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} cts de moins</span>` : ''}</div>
-    </button>`;
+      ${navHtml(s)}
+    </div>`;
   }).join('');
 }
 
-$('best').addEventListener('click', e => {
-  const c = e.target.closest('button.card');
-  if (!c) return;
+function openBest(c) {
   const s = bestItems[+c.dataset.k];
   document.querySelector('.map-box').scrollIntoView({ behavior: 'smooth', block: 'center' });
   clusters.zoomToShowLayer(s.marker, () => s.marker.openPopup());
+}
+$('best').addEventListener('click', e => {
+  if (e.target.closest('a')) return;
+  const c = e.target.closest('.card[data-k]');
+  if (c) openBest(c);
 });
+$('best').addEventListener('keydown', e => {
+  const c = e.target.closest('.card[data-k]');
+  if (c && e.target === c && (e.key === 'Enter' || e.key === ' ')) {
+    e.preventDefault();
+    openBest(c);
+  }
+});
+
+function navLinks(s) {
+  const { lat, lng } = s.marker.getLatLng();
+  return [
+    ['Google Maps', `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`],
+    ['Waze', `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`],
+    ['Plans', `https://maps.apple.com/?daddr=${lat},${lng}`],
+  ];
+}
+
+function navHtml(s) {
+  return `<div class="nav"><span>Itinéraire</span>${navLinks(s)
+    .map(([name, url]) => `<a href="${url}" target="_blank" rel="noopener">${name}</a>`).join('')}</div>`;
+}
 
 const CHEAP_FIRST = 10, CHEAP_MORE = 5;
 let cheapLimit = CHEAP_FIRST, cheapItems = [];
 
 function cheapRow(i, lead, s, fi) {
   const maj = s.maj[fi];
-  return `<li><button class="cheap-row" data-i="${i}">
+  return `<li class="cheap-item"><button class="cheap-row" data-i="${i}">
     ${lead}
     <span class="cheap-who"><b>${esc(s.ville || 'Commune inconnue')} (${esc(s.cp)})</b><small>${esc(s.adresse)}</small></span>
     <span class="cheap-price">${euro(s.prix[fi]).replace(' €', '')} <small>€/L · ${ago(maj)}</small></span>
-  </button></li>`;
+  </button><a class="cheap-go" href="${navLinks(s)[0][1]}" target="_blank" rel="noopener" title="Itinéraire (Google Maps)" aria-label="Itinéraire vers ${esc(s.ville || 'la station')} (Google Maps)">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.7 2.3a1 1 0 0 0-1.06-.23l-18 7a1 1 0 0 0 .08 1.89l7.37 2.18 2.18 7.37a1 1 0 0 0 .93.72h.03a1 1 0 0 0 .93-.64l7-18a1 1 0 0 0-.23-1.06z"/></svg>
+  </a></li>`;
 }
 
 function renderCheap(inZone) {
@@ -429,7 +465,8 @@ function popupHtml(s) {
     </div>`;
   }).join('');
   return `<div class="pop-head"><h3>${esc(s.ville || 'Commune inconnue')} <span style="font-weight:400;color:var(--muted)">${esc(s.cp)}</span></h3><div class="addr">${esc(s.adresse)}</div></div>
-    <div class="pop-body">${rows}</div>`;
+    <div class="pop-body">${rows}</div>
+    <div class="pop-nav">${navHtml(s)}</div>`;
 }
 
 function zoomToArea() {
