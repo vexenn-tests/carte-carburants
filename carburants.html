@@ -86,17 +86,25 @@
   .dot.old { background: #fff !important; border: 2px solid #9a988f; box-shadow: none; }
   .dot:hover { transform: scale(1.3); }
 
-  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
-  @media (max-width: 640px) { .stats { grid-template-columns: minmax(0, 1fr); } .map-box { height: 440px; } }
-  .stat { min-width: 0; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; text-align: left; font: inherit; color: inherit; }
-  button.stat { cursor: pointer; transition: border-color .15s; }
-  button.stat:hover { border-color: var(--brand); }
-  button.stat:disabled { cursor: default; border-color: var(--border); }
-  .stat .k { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
-  .stat .v { font-size: 22px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
-  .stat .v small { font-size: 12px; font-weight: 400; color: var(--muted); }
-  .stat .d { font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .stat .go { color: var(--accent-ink); }
+  .best { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+  .best.one { grid-template-columns: minmax(0, 1fr); }
+  @media (max-width: 640px) { .best { grid-template-columns: repeat(2, minmax(0, 1fr)); } .best.one { grid-template-columns: minmax(0, 1fr); } .map-box { height: 440px; } }
+  .card { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; background: #fff; border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 14px; text-align: left; font: inherit; color: inherit; }
+  button.card { cursor: pointer; transition: border-color .15s; }
+  button.card:hover { border-color: var(--brand); }
+  button.card:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  .card .k { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  .card .v { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .best.one .card .v { font-size: 30px; }
+  .card .v small { font-size: 12px; font-weight: 400; color: var(--muted); }
+  .card .who { max-width: 100%; font-size: 13px; }
+  .card .who b, .card .who small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card .who small { color: var(--text-secondary); font-size: 12px; }
+  .card .avg { margin-top: 4px; max-width: 100%; font-size: 12px; color: var(--text-secondary); background: var(--surface-2); padding: 3px 9px; border-radius: 999px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card .avg b { color: var(--text-primary); }
+  .card .save { color: #006300; font-weight: 700; }
   .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 2px; border: 1px solid rgba(0,0,0,.25); }
   .legend { background: rgba(255,255,255,.92); border-radius: 10px; box-shadow: var(--shadow); padding: 8px 10px; font-size: 11px; color: var(--text-secondary); }
   .legend-row { display: flex; align-items: center; gap: 6px; }
@@ -134,12 +142,10 @@
   .cheap-list li + li { border-top: 1px solid var(--line); }
   .cheap-row { width: 100%; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 6px;
     font: inherit; color: inherit; text-align: left; background: none; border: 0; border-radius: 8px; cursor: pointer; }
-  .cheap-list.all .cheap-row { grid-template-columns: 56px minmax(0, 1fr) auto; }
   .cheap-row:hover { background: var(--accent-soft); }
   .cheap-row:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
   .cheap-rank { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%;
     font-size: 12px; font-weight: 700; color: #fff; }
-  .cheap-tag { font-size: 12px; font-weight: 700; color: var(--brand); }
   .cheap-who { min-width: 0; }
   .cheap-who b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cheap-who small { display: block; color: var(--text-secondary); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -172,23 +178,7 @@
     <div class="summary" id="summary" aria-live="polite">—</div>
   </div>
 
-  <div class="stats" aria-live="polite">
-    <div class="stat">
-      <div class="k">Prix moyen dans la zone</div>
-      <div class="v" id="st-avg">—</div>
-      <div class="d" id="st-avg-d">&nbsp;</div>
-    </div>
-    <button class="stat" id="st-min" disabled>
-      <div class="k">Le moins cher dans la zone</div>
-      <div class="v">—</div>
-      <div class="d">&nbsp;</div>
-    </button>
-    <button class="stat" id="st-max" disabled>
-      <div class="k">Le plus cher dans la zone</div>
-      <div class="v">—</div>
-      <div class="d">&nbsp;</div>
-    </button>
-  </div>
+  <div class="best" id="best" aria-live="polite"></div>
 
   <section class="cheap" id="cheap" aria-live="polite" hidden>
     <h2 class="cheap-title" id="cheap-title">Les moins chers dans la zone</h2>
@@ -233,9 +223,8 @@ const fmt = n => n.toLocaleString('fr-FR');
 const euro = p => p.toLocaleString('fr-FR', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + ' €';
 const cents = d => (d >= 0 ? '+' : '−') + Math.abs(d * 100).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' cts';
 
-let stations = [], shown = [], fuelIdx = -1, fuelStats = null, place = null, zoneMin = null, zoneMax = null;
+let stations = [], shown = [], fuelIdx = -1, fuelStats = null, place = null;
 const ALL = () => fuelIdx < 0;
-const OVERVIEW_FUELS = [0, 2, 3];
 
 const price = (s, i = fuelIdx) => s.prix[i];
 const isFresh = (s, i = fuelIdx) => i >= 0 && s.prix[i] != null && s.maj[i] && (Date.now() - s.maj[i]) / 864e5 <= STALE_DAYS;
@@ -325,58 +314,50 @@ function updateZone() {
   const b = map.getBounds();
   const inZone = shown.filter(s => b.contains(s.marker.getLatLng()));
   $('summary').innerHTML = `<b>${fmt(inZone.length)}</b> station${inZone.length > 1 ? 's' : ''} dans la zone`;
-  zoneMin = zoneMax = null;
+  renderBest(inZone);
   renderCheap(inZone);
-
-  const cards = [['st-avg'], ['st-min'], ['st-max']].map(([id]) => $(id));
-  if (ALL()) {
-    OVERVIEW_FUELS.forEach((fi, k) => {
-      const card = cards[k];
-      if (card.tagName === 'BUTTON') card.disabled = true;
-      const ps = inZone.filter(s => isFresh(s, fi)).map(s => s.prix[fi]);
-      const avg = ps.length ? ps.reduce((a, b) => a + b, 0) / ps.length : null;
-      card.closest('.stat').querySelector('.k').textContent = `${FUELS[fi][1]} · prix moyen dans la zone`;
-      card.closest('.stat').querySelector('.v').innerHTML = avg == null ? '—' : `${euro(avg).replace(' €', '')} <small>€/L</small>`;
-      card.closest('.stat').querySelector('.d').textContent = ps.length ? `${fmt(ps.length)} station${ps.length > 1 ? 's' : ''} avec un prix récent` : 'Aucun prix récent ici';
-    });
-    return;
-  }
-  $('st-avg').closest('.stat').querySelector('.k').textContent = 'Prix moyen dans la zone';
-  $('st-min').querySelector('.k').textContent = 'Le moins cher dans la zone';
-  $('st-max').querySelector('.k').textContent = 'Le plus cher dans la zone';
-
-  const fresh = inZone.filter(s => isFresh(s));
-  if (!fresh.length || !fuelStats) {
-    $('st-avg').innerHTML = '—';
-    $('st-avg-d').textContent = `Aucun prix récent de ${FUELS[fuelIdx][1]} ici`;
-    for (const id of ['st-min', 'st-max']) {
-      $(id).disabled = true;
-      $(id).querySelector('.v').innerHTML = '—';
-      $(id).querySelector('.d').innerHTML = '&nbsp;';
-    }
-    return;
-  }
-  const avg = fresh.reduce((a, s) => a + price(s), 0) / fresh.length;
-  zoneMin = fresh.reduce((a, s) => price(s) < price(a) ? s : a);
-  zoneMax = fresh.reduce((a, s) => price(s) > price(a) ? s : a);
-  $('st-avg').innerHTML = `${euro(avg).replace(' €', '')} <small>€/L</small>`;
-  $('st-avg-d').textContent = Math.abs(avg - fuelStats.mean) < 0.0005
-    ? `Identique à la moyenne France (${euro(fuelStats.mean)})`
-    : `${cents(avg - fuelStats.mean)} vs moyenne France (${euro(fuelStats.mean)})`;
-  for (const [id, s] of [['st-min', zoneMin], ['st-max', zoneMax]]) {
-    $(id).disabled = false;
-    $(id).querySelector('.v').innerHTML = `<span class="sw" style="background:${colorFor(price(s))}"></span>${euro(price(s)).replace(' €', '')} <small>€/L</small>`;
-    $(id).querySelector('.d').innerHTML = `${esc(s.ville || 'Commune inconnue')} (${esc(s.cp)}) · <span class="go">Voir sur la carte</span>`;
-  }
 }
 map.on('moveend', updateZone);
 
-for (const [id, get] of [['st-min', () => zoneMin], ['st-max', () => zoneMax]]) {
-  $(id).addEventListener('click', () => {
-    const s = get();
-    if (s) clusters.zoomToShowLayer(s.marker, () => s.marker.openPopup());
-  });
+let bestItems = [];
+
+function renderBest(inZone) {
+  const fuels = ALL() ? FUELS.map((_, i) => i) : [fuelIdx];
+  $('best').classList.toggle('one', !ALL());
+  bestItems = [];
+  $('best').innerHTML = fuels.map((fi, k) => {
+    const label = FUELS[fi][1];
+    const title = ALL() ? label : `${label} : la station la moins chère`;
+    const fresh = inZone.filter(s => isFresh(s, fi));
+    if (!fresh.length) {
+      return `<div class="card"><div class="k">${title}</div><div class="v">—</div><div class="who"><small>Aucun prix récent ici</small></div></div>`;
+    }
+    const avg = fresh.reduce((a, s) => a + s.prix[fi], 0) / fresh.length;
+    if (!engaged) {
+      return `<div class="card"><div class="k">${label} · prix moyen</div>
+        <div class="v">${euro(avg).replace(' €', '')} <small>€/L</small></div>
+        <div class="who"><small>Cherchez une ville pour voir la moins chère</small></div></div>`;
+    }
+    const s = fresh.reduce((a, b) => b.prix[fi] < a.prix[fi] ? b : a);
+    bestItems[k] = s;
+    const save = avg - s.prix[fi];
+    const dot = ALL() ? 'var(--brand)' : colorFor(s.prix[fi]);
+    return `<button class="card" data-k="${k}">
+      <div class="k">${title}</div>
+      <div class="v"><span class="sw" style="background:${dot}"></span>${euro(s.prix[fi]).replace(' €', '')} <small>€/L</small></div>
+      <div class="who"><b>${esc(s.ville || 'Commune inconnue')} (${esc(s.cp)})</b><small>${esc(s.adresse)}</small></div>
+      <div class="avg">Moyenne dans la zone : <b>${euro(avg)}</b>${save >= 0.0005 ? ` · <span class="save">${(save * 100).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} cts de moins</span>` : ''}</div>
+    </button>`;
+  }).join('');
 }
+
+$('best').addEventListener('click', e => {
+  const c = e.target.closest('button.card');
+  if (!c) return;
+  const s = bestItems[+c.dataset.k];
+  document.querySelector('.map-box').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  clusters.zoomToShowLayer(s.marker, () => s.marker.openPopup());
+});
 
 const CHEAP_FIRST = 10, CHEAP_MORE = 5;
 let cheapLimit = CHEAP_FIRST, cheapItems = [];
@@ -391,29 +372,17 @@ function cheapRow(i, lead, s, fi) {
 }
 
 function renderCheap(inZone) {
-  let rows = [];
-  if (ALL()) {
-    $('cheap-title').textContent = 'Le moins cher par carburant dans la zone';
-    FUELS.forEach(([, label], fi) => {
-      const fresh = inZone.filter(s => isFresh(s, fi));
-      if (!fresh.length) return;
-      const s = fresh.reduce((a, b) => b.prix[fi] < a.prix[fi] ? b : a);
-      rows.push({ s, html: i => cheapRow(i, `<span class="cheap-tag">${label}</span>`, s, fi) });
-    });
-    $('cheap-more').hidden = true;
-  } else {
-    $('cheap-title').textContent = `${FUELS[fuelIdx][1]} : les moins chers dans la zone`;
-    const fresh = inZone.filter(s => isFresh(s)).sort((a, b) => price(a) - price(b));
-    rows = fresh.slice(0, cheapLimit).map((s, k) => ({
-      s, html: i => cheapRow(i, `<span class="cheap-rank" style="background:${colorFor(price(s))};color:${LIGHT_BINS.has(colorFor(price(s))) ? '#0b0b0b' : '#fff'}">${k + 1}</span>`, s, fuelIdx),
-    }));
-    $('cheap-more').hidden = fresh.length <= cheapLimit;
-  }
-  $('cheap-list').classList.toggle('all', ALL());
-  cheapItems = rows.map(r => r.s);
-  $('cheap-list').innerHTML = rows.length
-    ? rows.map((r, i) => r.html(i)).join('')
-    : '<li class="cheap-empty">Aucun prix récent dans la zone</li>';
+  const fresh = ALL() ? [] : inZone.filter(s => isFresh(s)).sort((a, b) => price(a) - price(b));
+  $('cheap').hidden = ALL() || !engaged || fresh.length < 2;
+  if ($('cheap').hidden) return;
+  $('cheap-title').textContent = `${FUELS[fuelIdx][1]} : les suivantes dans la zone`;
+  const rows = fresh.slice(1, cheapLimit);
+  cheapItems = rows;
+  $('cheap-list').innerHTML = rows.map((s, k) => {
+    const c = colorFor(price(s));
+    return cheapRow(k, `<span class="cheap-rank" style="background:${c};color:${LIGHT_BINS.has(c) ? '#0b0b0b' : '#fff'}">${k + 2}</span>`, s, fuelIdx);
+  }).join('');
+  $('cheap-more').hidden = fresh.length <= cheapLimit;
 }
 
 $('cheap-list').addEventListener('click', e => {
@@ -432,7 +401,7 @@ let engaged = false;
 function engage() {
   if (engaged) return;
   engaged = true;
-  $('cheap').hidden = false;
+  updateZone();
 }
 map.on('dragstart', engage);
 map.getContainer().addEventListener('wheel', engage, { passive: true });
@@ -561,7 +530,7 @@ $('fuel').innerHTML = `<option value="-1">Tous les carburants</option>` +
 $('fuel').addEventListener('change', e => {
   fuelIdx = +e.target.value;
   cheapLimit = CHEAP_FIRST;
-  engage();
+  engaged = true;
   map.closePopup();
   computeFuelStats();
   render();
